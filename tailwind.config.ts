@@ -63,6 +63,12 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			backgroundImage: {
+				'gradient-ai': 'var(--gradient-ai)',
+				'gradient-ai-dark': 'var(--gradient-ai-dark)',
+				'gradient-bg': 'var(--gradient-bg)',
+				'gradient-card': 'var(--gradient-card)'
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
@@ -84,11 +90,22 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'glow': {
+					'0%': {
+						boxShadow: '0 0 20px hsl(280 100% 70% / 0.2)'
+					},
+					'100%': {
+						boxShadow: '0 0 30px hsl(280 100% 70% / 0.4), 0 0 40px hsl(320 100% 75% / 0.3)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'glow': 'glow 2s ease-in-out infinite alternate',
+				'bounce-slow': 'bounce 2s infinite',
+				'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
 			}
 		}
 	},

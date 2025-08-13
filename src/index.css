@@ -2,41 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* AI Quiz App Design System - Modern, catchy AI-themed colors and gradients */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* AI-themed color palette */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* AI Purple/Pink theme */
+    --primary: 280 100% 70%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 320 100% 75%;
+    --secondary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 260 100% 80%;
+    --accent-foreground: 240 10% 3.9%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 280 100% 70%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
+    
+    /* AI-themed gradients */
+    --gradient-ai: linear-gradient(135deg, hsl(280 100% 70%), hsl(320 100% 75%));
+    --gradient-ai-dark: linear-gradient(135deg, hsl(280 100% 60%), hsl(320 100% 65%));
+    --gradient-bg: linear-gradient(135deg, hsl(240 10% 3.9%), hsl(260 15% 8%));
+    --gradient-card: linear-gradient(135deg, hsl(240 7% 8%), hsl(260 10% 12%));
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    /* Shadows with AI theme */
+    --shadow-ai: 0 10px 40px -10px hsl(280 100% 70% / 0.3);
+    --shadow-card: 0 8px 32px -8px hsl(280 100% 70% / 0.2);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +114,67 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-gradient-to-br from-background to-[hsl(260_15%_8%)] text-foreground min-h-screen;
+  }
+}
+
+@layer components {
+  /* AI Quiz App Custom Components */
+  .quiz-button {
+    @apply w-full p-4 rounded-2xl border-2 border-transparent bg-gradient-to-r from-muted to-muted/80 
+           text-foreground transition-all duration-300 hover:scale-[1.02] hover:shadow-lg 
+           hover:from-primary/20 hover:to-secondary/20 hover:border-primary/50 
+           active:scale-[0.98] text-left font-medium;
+  }
+  
+  .quiz-button.selected {
+    @apply bg-gradient-to-r from-primary to-secondary text-primary-foreground border-primary 
+           shadow-[0_0_20px_hsl(280_100%_70%/0.3)];
+  }
+  
+  .ai-button {
+    @apply px-8 py-4 rounded-2xl bg-gradient-to-r from-primary to-secondary text-primary-foreground 
+           font-semibold transition-all duration-300 hover:scale-105 hover:shadow-[0_10px_30px_hsl(280_100%_70%/0.4)]
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+  }
+  
+  .ai-card {
+    @apply bg-gradient-to-br from-card to-muted/30 rounded-3xl p-6 border border-border/50 
+           shadow-[0_8px_32px_hsl(280_100%_70%/0.1)] backdrop-blur-sm;
+  }
+  
+  .progress-bar {
+    @apply h-2 bg-muted rounded-full overflow-hidden;
+  }
+  
+  .progress-fill {
+    @apply h-full bg-gradient-to-r from-primary to-secondary transition-all duration-500 ease-out;
+  }
+  
+  .blur-result {
+    @apply backdrop-blur-md bg-muted/20 rounded-2xl;
+  }
+}
+
+@layer utilities {
+  .animate-bounce-slow {
+    animation: bounce 2s infinite;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px hsl(280 100% 70% / 0.2);
+  }
+  to {
+    box-shadow: 0 0 30px hsl(280 100% 70% / 0.4), 0 0 40px hsl(320 100% 75% / 0.3);
   }
 }
