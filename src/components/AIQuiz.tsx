@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { WelcomeScreen } from './quiz/WelcomeScreen';
-import { QuizScreen } from './quiz/QuizScreen';
+import { QuizScreen, QuizQuestion } from './quiz/QuizScreen';
 import { ResultsScreen } from './quiz/ResultsScreen';
 import { PaymentScreen } from './quiz/PaymentScreen';
 import { supabase } from '../lib/supabase';
@@ -168,13 +168,7 @@ const AIQuiz = () => {
         
         {currentState === 'quiz' && questions[currentQuestion] && (
           <QuizScreen
-            question={{
-              id: questions[currentQuestion].id,
-              question: questions[currentQuestion].question,
-              description: questions[currentQuestion].description,
-              emoji: questions[currentQuestion].emoji,
-              options: questions[currentQuestion].options
-            }}
+            question={questions[currentQuestion]}
             questionNumber={currentQuestion + 1}
             totalQuestions={questions.length}
             onAnswer={handleAnswerQuestion}

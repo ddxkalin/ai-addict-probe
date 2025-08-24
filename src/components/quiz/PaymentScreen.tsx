@@ -18,6 +18,8 @@ export const PaymentScreen = ({ onSuccess, onBack, quizResultId }: PaymentScreen
     setIsProcessing(true);
     
     try {
+      console.log('Initiating payment for:', { quizResultId, email });
+      
       // Create checkout session
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
@@ -30,11 +32,28 @@ export const PaymentScreen = ({ onSuccess, onBack, quizResultId }: PaymentScreen
         }),
       });
 
-      const { sessionId } = await response.json();
+      console.log('API Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error(`API Error: ${errorData.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response data:', data);
+      
+      const { sessionId } = data;
+      if (!sessionId) {
+        throw new Error('No session ID received from server');
+      }
+
       const stripe = await stripePromise;
       
       if (!stripe) throw new Error('Stripe failed to load');
 
+      console.log('Redirecting to Stripe checkout...');
+      
       // Redirect to Stripe Checkout
       const result = await stripe.redirectToCheckout({
         sessionId,
@@ -45,7 +64,8 @@ export const PaymentScreen = ({ onSuccess, onBack, quizResultId }: PaymentScreen
       }
     } catch (error) {
       console.error('Payment failed:', error);
-      alert('Payment failed. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Payment failed: ${errorMessage}. Please try again.`);
       setIsProcessing(false);
     }
   };

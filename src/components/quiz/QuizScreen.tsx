@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { CheckCircle } from 'lucide-react';
-import { QuizQuestion } from './quizData';
+
+export interface QuizQuestion {
+  id: number;
+  question: string;
+  description?: string;
+  emoji: string;
+  options: Array<{
+    text: string;
+    points: number;
+  }>;
+}
 
 interface QuizScreenProps {
   question: QuizQuestion;
