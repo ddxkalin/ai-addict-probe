@@ -1,36 +1,56 @@
 import { useState } from 'react';
 import { CreditCard, Lock, ArrowLeft, Check } from 'lucide-react';
+import { stripePromise } from '../../lib/stripe';
 
 interface PaymentScreenProps {
   onSuccess: () => void;
   onBack: () => void;
+  quizResultId?: string;
 }
 
-export const PaymentScreen = ({ onSuccess, onBack }: PaymentScreenProps) => {
+export const PaymentScreen = ({ onSuccess, onBack, quizResultId }: PaymentScreenProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    name: ''
-  });
+  const [email, setEmail] = useState('');
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handlePayment = () => {
+  const handlePayment = async () => {
+    if (!email) return;
+    
     setIsProcessing(true);
     
-    // Simulate payment processing
-    setTimeout(() => {
+    try {
+      // Create checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quizResultId: quizResultId || 'temp-' + Date.now(),
+          email,
+        }),
+      });
+
+      const { sessionId } = await response.json();
+      const stripe = await stripePromise;
+      
+      if (!stripe) throw new Error('Stripe failed to load');
+
+      // Redirect to Stripe Checkout
+      const result = await stripe.redirectToCheckout({
+        sessionId,
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+    } catch (error) {
+      console.error('Payment failed:', error);
+      alert('Payment failed. Please try again.');
       setIsProcessing(false);
-      onSuccess();
-    }, 2000);
+    }
   };
 
-  const isFormValid = formData.email && formData.cardNumber && formData.expiryDate && formData.cvv && formData.name;
+  const isFormValid = email.includes('@') && email.includes('.');
 
   return (
     <div className="ai-card space-y-6 animate-fade-in">
@@ -72,56 +92,14 @@ export const PaymentScreen = ({ onSuccess, onBack }: PaymentScreenProps) => {
           <label className="block text-sm font-medium text-foreground mb-2">Email</label>
           <input
             type="email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
             className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            placeholder="John Doe"
-            className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Card Number</label>
-          <input
-            type="text"
-            value={formData.cardNumber}
-            onChange={(e) => handleInputChange('cardNumber', e.target.value.replace(/\D/g, '').slice(0, 16))}
-            placeholder="1234 5678 9012 3456"
-            className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Expiry</label>
-            <input
-              type="text"
-              value={formData.expiryDate}
-              onChange={(e) => handleInputChange('expiryDate', e.target.value)}
-              placeholder="MM/YY"
-              className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">CVV</label>
-            <input
-              type="text"
-              value={formData.cvv}
-              onChange={(e) => handleInputChange('cvv', e.target.value.replace(/\D/g, '').slice(0, 3))}
-              placeholder="123"
-              className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            />
-          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            We'll send your results to this email address
+          </p>
         </div>
       </div>
 
@@ -138,13 +116,13 @@ export const PaymentScreen = ({ onSuccess, onBack }: PaymentScreenProps) => {
         ) : (
           <div className="flex items-center justify-center">
             <Check className="w-5 h-5 mr-2" />
-            Complete Payment - $4.99
+            Continue to Checkout - $4.99
           </div>
         )}
       </button>
 
       <p className="text-xs text-muted-foreground text-center">
-        🔒 Your payment is secured with SSL encryption
+        🔒 Secure payment powered by Stripe
       </p>
     </div>
   );
