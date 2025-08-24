@@ -39,44 +39,53 @@ export default async function handler(
   }
 
   try {
-    const { quizResultId, email } = req.body
-    
-    console.log('Request body:', { quizResultId, email })
+    const { quizResultId, email } = req.body;
+
+    // Use default email if none provided (Stripe will collect the real one)
+    const cleanEmail = email && typeof email === 'string' 
+      ? email.replace(/\u200B/g, '').trim()
+      : 'checkout@example.com';
+
+    // Clean the quizResultId
+    const cleanQuizResultId = (quizResultId || 'temp-' + Date.now())
+      .toString()
+      .replace(/[^a-zA-Z0-9-_]/g, '');
+
+    console.log('Creating checkout session with cleaned data:', { 
+    cleanQuizResultId, 
+    email: cleanEmail,
+    appUrl: process.env.VITE_APP_URL 
+    });
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'AI Addiction Quiz Results',
-              description: 'Detailed analysis of your AI usage habits',
-            },
-            unit_amount: 499, // $4.99 in cents
-          },
+          price: 'price_1RzfiIFgXTedWk3qR9A7VaCI', // Use existing price ID
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.VITE_APP_URL || 'http://localhost:5173'}?success=true&session_id={CHECKOUT_SESSION_ID}&quiz_result_id=${quizResultId}`,
-      cancel_url: `${process.env.VITE_APP_URL || 'http://localhost:5173'}?canceled=true`,
-      customer_email: email,
+      success_url: `${process.env.VITE_APP_URL || 'http://localhost:8081'}?success=true&session_id={CHECKOUT_SESSION_ID}&quiz_result_id=${cleanQuizResultId}`,
+      cancel_url: `${process.env.VITE_APP_URL || 'http://localhost:8081'}?canceled=true`,
+      // Let Stripe collect email during checkout instead of pre-filling
       metadata: {
-        quizResultId,
-        email,
+        quizResultId: cleanQuizResultId,
+        product_id: 'prod_SvWlBNTk2Raf09',
       },
     })
 
-    console.log('Stripe session created:', session.id)
+    console.log('Stripe session created successfully:', session.id)
     res.status(200).json({ sessionId: session.id })
   } catch (error) {
     console.error('Error creating checkout session:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorDetails = error instanceof Error ? error.stack : String(error)
+    
     res.status(500).json({ 
-      message: 'Internal server error',
+      message: 'Failed to create checkout session',
       error: errorMessage,
-      details: error
+      details: errorDetails
     })
   }
 }

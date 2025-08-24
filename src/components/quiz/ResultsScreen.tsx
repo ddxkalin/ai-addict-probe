@@ -1,13 +1,90 @@
-import { RefreshCw, Lock, Unlock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { RefreshCw, Lock, Unlock, Loader2 } from 'lucide-react';
 
 interface ResultsScreenProps {
   score: number;
   hasPaid: boolean;
   onPayment: () => void;
   onRestart: () => void;
+  quizResultId?: string;
 }
 
-export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart }: ResultsScreenProps) => {
+export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResultId }: ResultsScreenProps) => {
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+
+  // Check for payment success on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const sessionId = urlParams.get('session_id');
+    
+    if (success === 'true' && sessionId) {
+      console.log('Payment successful! Session ID:', sessionId);
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Trigger the onPayment callback to update the parent component
+      onPayment();
+    }
+  }, [onPayment]);
+
+  const handleStripePayment = async () => {
+    setIsPaymentLoading(true);
+    setPaymentError('');
+
+    try {
+      // Generate a clean quiz result ID that matches the expected pattern
+      const cleanQuizResultId = quizResultId 
+        ? quizResultId.toString().replace(/[^a-zA-Z0-9-_]/g, '')
+        : `quiz-${Date.now()}`;
+      
+      // Store quiz result info for after payment
+      if (cleanQuizResultId) {
+        localStorage.setItem('pendingQuizResult', cleanQuizResultId);
+      }
+
+      // Try API call with better error handling
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          quizResultId: cleanQuizResultId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Network error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Redirect to Stripe checkout
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      if (data.sessionId) {
+        window.location.href = `https://checkout.stripe.com/c/pay/${data.sessionId}`;
+        return;
+      }
+
+      throw new Error('Checkout URL or sessionId missing from server response.');
+    } catch (err) {
+      console.error('Payment error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
+      
+      // Check if it's a development environment connection error
+      if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Network error')) {
+        setPaymentError('⚠️ Development Mode: API server not running. Deploy to production or run `vercel dev` to test payments.');
+      } else {
+        setPaymentError(errorMessage);
+      }
+      setIsPaymentLoading(false);
+    }
+  };
+
   const getScoreDescription = (score: number) => {
     if (score >= 80) return { text: "🤖 AI Overlord! You're completely AI-obsessed!", color: "text-red-400" };
     if (score >= 60) return { text: "🧠 AI Enthusiast! You love your AI tools!", color: "text-orange-400" };
@@ -71,11 +148,26 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart }: ResultsS
             <p className="text-muted-foreground">
               Complete payment to unlock your detailed AI addiction analysis!
             </p>
+            
+            {paymentError && (
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                <p className="text-red-600 dark:text-red-400 text-sm">{paymentError}</p>
+              </div>
+            )}
+            
             <button
-              onClick={onPayment}
-              className="ai-button w-full text-lg font-semibold"
+              onClick={handleStripePayment}
+              disabled={isPaymentLoading}
+              className="ai-button w-full text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Pay Now - $4.99 💳
+              {isPaymentLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin inline" />
+                  Redirecting to Stripe...
+                </>
+              ) : (
+                <>Pay Now - $4.99 💳</>
+              )}
             </button>
             <button
               onClick={onRestart}
