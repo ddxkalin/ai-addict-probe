@@ -3,8 +3,8 @@ import { WelcomeScreen } from './quiz/WelcomeScreen';
 import { QuizScreen } from './quiz/QuizScreen';
 import { ResultsScreen } from './quiz/ResultsScreen';
 import { PaymentScreen } from './quiz/PaymentScreen';
-import { quizQuestions } from './quiz/quizData';
 import { supabase } from '../lib/supabase';
+import { useQuestions, DatabaseQuestion } from '../hooks/useQuestions';
 
 export type QuizState = 'welcome' | 'quiz' | 'results' | 'payment';
 
@@ -20,6 +20,9 @@ const AIQuiz = () => {
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [hasPaid, setHasPaid] = useState(false);
   const [quizResultId, setQuizResultId] = useState<string | null>(null);
+  
+  // Use dynamic questions from database
+  const { questions, loading, error, refetchQuestions } = useQuestions(10);
 
   // Check URL parameters for payment success
   useEffect(() => {
@@ -49,6 +52,10 @@ const AIQuiz = () => {
   };
 
   const handleStartQuiz = () => {
+    if (questions.length === 0) {
+      alert('No questions available. Please try again.');
+      return;
+    }
     setCurrentState('quiz');
     setCurrentQuestion(0);
     setAnswers([]);
@@ -64,7 +71,7 @@ const AIQuiz = () => {
     const updatedAnswers = [...answers, newAnswer];
     setAnswers(updatedAnswers);
 
-    if (currentQuestion < quizQuestions.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       // Quiz completed, save to database
@@ -76,7 +83,7 @@ const AIQuiz = () => {
   const saveQuizResult = async (finalAnswers: QuizAnswer[]) => {
     try {
       const totalScore = finalAnswers.reduce((sum, answer) => sum + answer.points, 0);
-      const maxScore = quizQuestions.length * 3;
+      const maxScore = questions.length * 3;
       const scorePercentage = Math.round((totalScore / maxScore) * 100);
 
       const { data, error } = await supabase
@@ -115,11 +122,42 @@ const AIQuiz = () => {
     setAnswers([]);
     setHasPaid(false);
     setQuizResultId(null);
+    // Get new random questions
+    refetchQuestions();
   };
 
   const totalScore = answers.reduce((sum, answer) => sum + answer.points, 0);
-  const maxScore = quizQuestions.length * 3; // Assuming max 3 points per question
+  const maxScore = questions.length * 3; // Assuming max 3 points per question
   const scorePercentage = Math.round((totalScore / maxScore) * 100);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-[hsl(260_15%_8%)] flex items-center justify-center p-4">
+        <div className="ai-card text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading questions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-[hsl(260_15%_8%)] flex items-center justify-center p-4">
+        <div className="ai-card text-center">
+          <p className="text-red-400 mb-4">⚠️ {error || 'No questions available'}</p>
+          <button 
+            onClick={refetchQuestions}
+            className="ai-button"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-[hsl(260_15%_8%)] flex items-center justify-center p-4">
@@ -128,11 +166,17 @@ const AIQuiz = () => {
           <WelcomeScreen onStart={handleStartQuiz} />
         )}
         
-        {currentState === 'quiz' && (
+        {currentState === 'quiz' && questions[currentQuestion] && (
           <QuizScreen
-            question={quizQuestions[currentQuestion]}
+            question={{
+              id: questions[currentQuestion].id,
+              question: questions[currentQuestion].question,
+              description: questions[currentQuestion].description,
+              emoji: questions[currentQuestion].emoji,
+              options: questions[currentQuestion].options
+            }}
             questionNumber={currentQuestion + 1}
-            totalQuestions={quizQuestions.length}
+            totalQuestions={questions.length}
             onAnswer={handleAnswerQuestion}
           />
         )}
