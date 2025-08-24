@@ -1,10 +1,6 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'
-import Stripe from 'stripe'
+const Stripe = require('stripe')
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+module.exports = async function handler(req, res) {
   try {
     // Add CORS headers
     res.setHeader('Access-Control-Allow-Credentials', 'true')
