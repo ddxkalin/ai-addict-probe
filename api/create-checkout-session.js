@@ -20,15 +20,32 @@ export default async function handler(req, res) {
     }
 
     // Check for required environment variables
+    console.log('Environment check:', {
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      stripeKeyLength: process.env.STRIPE_SECRET_KEY?.length || 0,
+      stripeKeyPrefix: process.env.STRIPE_SECRET_KEY?.substring(0, 7) || 'none'
+    })
+
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error('Missing STRIPE_SECRET_KEY environment variable')
-      return res.status(500).json({ message: 'Server configuration error' })
+      return res.status(500).json({ message: 'Server configuration error: Missing Stripe key' })
+    }
+
+    if (!process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
+      console.error('Invalid STRIPE_SECRET_KEY format')
+      return res.status(500).json({ message: 'Server configuration error: Invalid Stripe key format' })
     }
 
     // Initialize Stripe with error handling
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-06-20',
-    })
+    let stripe
+    try {
+      stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2024-06-20',
+      })
+    } catch (stripeInitError) {
+      console.error('Failed to initialize Stripe:', stripeInitError)
+      return res.status(500).json({ message: 'Stripe initialization failed' })
+    }
 
     // Parse request body
     const { quizResultId, email } = req.body || {};
