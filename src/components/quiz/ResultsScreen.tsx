@@ -28,25 +28,41 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart }: ResultsS
       {!hasPaid ? (
         // Blurred Results (Unpaid)
         <div className="space-y-6">
-          <div className="blur-result p-6 space-y-4 relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-muted/50 to-muted/80 rounded-2xl flex items-center justify-center">
-              <div className="text-center space-y-3">
-                <Lock className="w-8 h-8 mx-auto text-primary" />
-                <p className="text-foreground font-semibold">Unlock your results!</p>
+          <div className="blur-result p-6 space-y-4 relative overflow-hidden">
+            {/* Heavy blur overlay that completely hides content */}
+            <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-muted/95 to-background/95 rounded-2xl flex items-center justify-center z-10">
+              <div className="text-center space-y-4 max-w-xs">
+                <div className="relative">
+                  <Lock className="w-12 h-12 mx-auto text-primary animate-bounce" />
+                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-foreground">Unlock Your Results!</h3>
+                  <p className="text-muted-foreground text-sm">
+                    See your complete AI addiction analysis
+                  </p>
+                </div>
+                <div className="flex items-center justify-center space-x-2 text-primary text-sm">
+                  <span>✨</span>
+                  <span>Personalized insights awaiting</span>
+                  <span>✨</span>
+                </div>
               </div>
             </div>
             
-            {/* Blurred content */}
-            <div className="blur-sm">
-              <div className="text-6xl font-bold text-primary">{score}%</div>
-              <p className={`text-lg font-semibold ${description.color}`}>
-                {description.text}
+            {/* Completely obscured content - users can't see anything */}
+            <div className="blur-xl opacity-20 pointer-events-none select-none">
+              <div className="text-6xl font-bold text-primary">XX%</div>
+              <p className="text-lg font-semibold text-muted-foreground">
+                Hidden Analysis Results
               </p>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>🎯 Detailed analysis of your AI habits</p>
-                <p>📊 Personalized recommendations</p>
-                <p>🚀 Tips to optimize your AI usage</p>
-                <p>🔥 Comparison with other users</p>
+                <p>█████ ████████ ██ ████ ██ ██████</p>
+                <p>█████████ ██████████████</p>
+                <p>████ ██ ████████ ████ ██ █████</p>
+                <p>██████████ ████ █████ █████</p>
+                <p>████ ████████ ███████ ████████</p>
+                <p>████████ █████ ████ █████ ████</p>
               </div>
             </div>
           </div>
