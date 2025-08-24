@@ -75,9 +75,9 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
       console.error('Payment error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
       
-      // Check if it's a development environment connection error
-      if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Network error')) {
-        setPaymentError('⚠️ Development Mode: API server not running. Deploy to production or run `vercel dev` to test payments.');
+      // Check if it's a connection or API error
+      if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Network error') || errorMessage.includes('Failed to fetch')) {
+        setPaymentError('⚠️ Payment service temporarily unavailable. Please try again in a moment.');
       } else {
         setPaymentError(errorMessage);
       }

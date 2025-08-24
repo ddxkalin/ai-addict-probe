@@ -95,8 +95,8 @@ export const CategoryResultsScreen = ({
       console.error('Payment error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
       
-      if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Network error')) {
-        setPaymentError('⚠️ Development Mode: API server not running. Deploy to production or run `vercel dev` to test payments.');
+      if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Network error') || errorMessage.includes('Failed to fetch')) {
+        setPaymentError('⚠️ Payment service temporarily unavailable. Please try again in a moment.');
       } else {
         setPaymentError(errorMessage);
       }
