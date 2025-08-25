@@ -49,12 +49,12 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
       return;
     }
     
-    // Fallback: Check if user returned from payment without URL params
+    // Fallback: Check if user returned from payment without URL params (Payment Link flow)
     if (paymentInitiated === 'true' && quizStartTime) {
       const timeElapsed = Date.now() - parseInt(quizStartTime);
-      // If more than 1 minute has passed, assume payment was completed
-      if (timeElapsed > 60000) {
-        console.log('Assuming payment completed - user returned after sufficient time');
+      // If more than 30 seconds has passed and user is back, assume payment was completed
+      if (timeElapsed > 30000) {
+        console.log('Payment Link flow - user returned after payment time, assuming completed');
         localStorage.removeItem('paymentInitiated');
         localStorage.removeItem('pendingQuizResult');
         localStorage.removeItem('quizStartTime');
@@ -77,31 +77,13 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
       // Store quiz result info for after payment
       localStorage.setItem('pendingQuizResult', cleanQuizResultId);
       localStorage.setItem('paymentInitiated', 'true');
+      localStorage.setItem('quizStartTime', Date.now().toString());
 
-      // Call our API to create a checkout session
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quizResultId: cleanQuizResultId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Network error' }));
-        throw new Error(errorData.message || 'Failed to create checkout session');
-      }
-
-      const { sessionId } = await response.json();
-
-      if (!sessionId) {
-        throw new Error('No session ID returned from server');
-      }
-
-      // Redirect to Stripe Checkout
-      window.location.href = `https://checkout.stripe.com/c/pay/${sessionId}`;
+      // Use Stripe Payment Link with client reference ID
+      const paymentUrl = `https://buy.stripe.com/test_7sYaEX2yEbai9PjfaiaVa00?client_reference_id=${cleanQuizResultId}`;
+      
+      // Redirect to Stripe Payment Link
+      window.location.href = paymentUrl;
       
     } catch (err) {
       console.error('Payment error:', err);
