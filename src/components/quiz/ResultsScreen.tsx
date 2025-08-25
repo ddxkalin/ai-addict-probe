@@ -52,8 +52,8 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
     // Fallback: Check if user returned from payment without URL params (Payment Link flow)
     if (paymentInitiated === 'true' && quizStartTime) {
       const timeElapsed = Date.now() - parseInt(quizStartTime);
-      // If more than 30 seconds has passed and user is back, assume payment was completed
-      if (timeElapsed > 30000) {
+      // If more than 15 seconds has passed and user is back, assume payment was completed
+      if (timeElapsed > 15000) {
         console.log('Payment Link flow - user returned after payment time, assuming completed');
         localStorage.removeItem('paymentInitiated');
         localStorage.removeItem('pendingQuizResult');
@@ -178,21 +178,26 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
               )}
             </button>
             
-            {/* Backup button if user completed payment but wasn't redirected */}
-            {localStorage.getItem('paymentInitiated') === 'true' && (
-              <button
-                onClick={() => {
-                  localStorage.removeItem('paymentInitiated');
-                  localStorage.removeItem('pendingQuizResult');
-                  localStorage.removeItem('quizStartTime');
-                  localStorage.removeItem('expectedReturnUrl');
-                  onPayment();
-                }}
-                className="w-full px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-300"
-              >
-                ✅ I Completed My Payment - Show Results
-              </button>
-            )}
+            {/* Manual completion button - always show after payment is initiated */}
+            <div className="space-y-3">
+              <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                <p className="text-blue-600 dark:text-blue-400 text-sm font-medium mb-2">
+                  💳 After completing your payment on Stripe, click the button below to unlock your results:
+                </p>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('paymentInitiated');
+                    localStorage.removeItem('pendingQuizResult');
+                    localStorage.removeItem('quizStartTime');
+                    localStorage.removeItem('expectedReturnUrl');
+                    onPayment();
+                  }}
+                  className="w-full px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-300 shadow-lg"
+                >
+                  ✅ I Completed My Payment - Show Results
+                </button>
+              </div>
+            </div>
             <button
               onClick={onRestart}
               className="w-full px-6 py-3 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:border-primary transition-all duration-300"
