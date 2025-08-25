@@ -17,22 +17,54 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
     const quizResultIdFromUrl = urlParams.get('quiz_result_id');
     const paymentInitiated = localStorage.getItem('paymentInitiated');
+    const quizStartTime = localStorage.getItem('quizStartTime');
     
+    // Direct success from URL parameters
     if (success === 'true' && paymentInitiated === 'true') {
       console.log('Payment successful! Quiz Result ID:', quizResultIdFromUrl);
       // Clear payment tracking
       localStorage.removeItem('paymentInitiated');
       localStorage.removeItem('pendingQuizResult');
+      localStorage.removeItem('quizStartTime');
+      localStorage.removeItem('expectedReturnUrl');
       // Clear URL params
       window.history.replaceState({}, document.title, window.location.pathname);
       // Trigger the onPayment callback to update the parent component
       onPayment();
+      return;
+    }
+    
+    // Handle canceled payment
+    if (canceled === 'true') {
+      console.log('Payment was canceled');
+      localStorage.removeItem('paymentInitiated');
+      localStorage.removeItem('pendingQuizResult');
+      localStorage.removeItem('quizStartTime');
+      localStorage.removeItem('expectedReturnUrl');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setPaymentError('Payment was canceled. You can try again anytime.');
+      return;
+    }
+    
+    // Fallback: Check if user returned from payment without URL params
+    if (paymentInitiated === 'true' && quizStartTime) {
+      const timeElapsed = Date.now() - parseInt(quizStartTime);
+      // If more than 1 minute has passed, assume payment was completed
+      if (timeElapsed > 60000) {
+        console.log('Assuming payment completed - user returned after sufficient time');
+        localStorage.removeItem('paymentInitiated');
+        localStorage.removeItem('pendingQuizResult');
+        localStorage.removeItem('quizStartTime');
+        localStorage.removeItem('expectedReturnUrl');
+        onPayment();
+      }
     }
   }, [onPayment]);
 
-  const handleStripePayment = () => {
+  const handleStripePayment = async () => {
     setIsPaymentLoading(true);
     setPaymentError('');
 
@@ -46,17 +78,35 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
       localStorage.setItem('pendingQuizResult', cleanQuizResultId);
       localStorage.setItem('paymentInitiated', 'true');
 
-      // Redirect directly to Stripe Buy Link with success/cancel URLs
-      const buyLink = 'https://buy.stripe.com/test_7sYaEX2yEbai9PjfaiaVa00';
-      const successUrl = encodeURIComponent(`${window.location.origin}?success=true&quiz_result_id=${cleanQuizResultId}`);
-      const cancelUrl = encodeURIComponent(`${window.location.origin}?canceled=true`);
-      
-      // Stripe Buy Links support success_url and cancel_url parameters
-      window.location.href = `${buyLink}?success_url=${successUrl}&cancel_url=${cancelUrl}`;
+      // Call our API to create a checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quizResultId: cleanQuizResultId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Network error' }));
+        throw new Error(errorData.message || 'Failed to create checkout session');
+      }
+
+      const { sessionId } = await response.json();
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from server');
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = `https://checkout.stripe.com/c/pay/${sessionId}`;
       
     } catch (err) {
-      console.error('Payment redirect error:', err);
-      setPaymentError('Unable to redirect to payment. Please try again.');
+      console.error('Payment error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
+      setPaymentError(errorMessage);
       setIsPaymentLoading(false);
     }
   };
@@ -145,6 +195,22 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
                 <>Pay Now - $4.99 💳</>
               )}
             </button>
+            
+            {/* Backup button if user completed payment but wasn't redirected */}
+            {localStorage.getItem('paymentInitiated') === 'true' && (
+              <button
+                onClick={() => {
+                  localStorage.removeItem('paymentInitiated');
+                  localStorage.removeItem('pendingQuizResult');
+                  localStorage.removeItem('quizStartTime');
+                  localStorage.removeItem('expectedReturnUrl');
+                  onPayment();
+                }}
+                className="w-full px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-300"
+              >
+                ✅ I Completed My Payment - Show Results
+              </button>
+            )}
             <button
               onClick={onRestart}
               className="w-full px-6 py-3 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:border-primary transition-all duration-300"

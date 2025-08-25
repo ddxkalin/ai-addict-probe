@@ -66,21 +66,33 @@ export default async function handler(req, res) {
       appUrl: process.env.VITE_APP_URL 
     });
 
+    // Get the origin from the request or use environment variable
+    const origin = req.headers.origin || process.env.VITE_APP_URL || 'https://ai-addict-probe-9tjkovr1e-kstoev9316-gmailcoms-projects.vercel.app';
+    
+    console.log('Creating checkout session with origin:', origin);
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price: 'price_1RzfiIFgXTedWk3qR9A7VaCI',
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'AI Addiction Quiz Results',
+              description: 'Unlock your personalized AI addiction analysis and insights',
+            },
+            unit_amount: 499, // $4.99 in cents
+          },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.VITE_APP_URL || 'https://your-domain.vercel.app'}?success=true&session_id={CHECKOUT_SESSION_ID}&quiz_result_id=${cleanQuizResultId}`,
-      cancel_url: `${process.env.VITE_APP_URL || 'https://your-domain.vercel.app'}?canceled=true`,
+      success_url: `${origin}?success=true&session_id={CHECKOUT_SESSION_ID}&quiz_result_id=${cleanQuizResultId}`,
+      cancel_url: `${origin}?canceled=true`,
       metadata: {
         quizResultId: cleanQuizResultId,
-        product_id: 'prod_SvWlBNTk2Raf09',
+        product: 'AI Addiction Quiz Results',
       },
     })
 
