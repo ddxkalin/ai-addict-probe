@@ -17,10 +17,14 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
-    const sessionId = urlParams.get('session_id');
+    const quizResultIdFromUrl = urlParams.get('quiz_result_id');
+    const paymentInitiated = localStorage.getItem('paymentInitiated');
     
-    if (success === 'true' && sessionId) {
-      console.log('Payment successful! Session ID:', sessionId);
+    if (success === 'true' && paymentInitiated === 'true') {
+      console.log('Payment successful! Quiz Result ID:', quizResultIdFromUrl);
+      // Clear payment tracking
+      localStorage.removeItem('paymentInitiated');
+      localStorage.removeItem('pendingQuizResult');
       // Clear URL params
       window.history.replaceState({}, document.title, window.location.pathname);
       // Trigger the onPayment callback to update the parent component
@@ -28,59 +32,31 @@ export const ResultsScreen = ({ score, hasPaid, onPayment, onRestart, quizResult
     }
   }, [onPayment]);
 
-  const handleStripePayment = async () => {
+  const handleStripePayment = () => {
     setIsPaymentLoading(true);
     setPaymentError('');
 
     try {
-      // Generate a clean quiz result ID that matches the expected pattern
+      // Generate a clean quiz result ID for tracking
       const cleanQuizResultId = quizResultId 
         ? quizResultId.toString().replace(/[^a-zA-Z0-9-_]/g, '')
         : `quiz-${Date.now()}`;
       
       // Store quiz result info for after payment
-      if (cleanQuizResultId) {
-        localStorage.setItem('pendingQuizResult', cleanQuizResultId);
-      }
+      localStorage.setItem('pendingQuizResult', cleanQuizResultId);
+      localStorage.setItem('paymentInitiated', 'true');
 
-      // Try API call with better error handling
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          quizResultId: cleanQuizResultId
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Network error' }));
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      // Redirect to Stripe checkout
-      if (data.url) {
-        window.location.href = data.url;
-        return;
-      }
-
-      if (data.sessionId) {
-        window.location.href = `https://checkout.stripe.com/c/pay/${data.sessionId}`;
-        return;
-      }
-
-      throw new Error('Checkout URL or sessionId missing from server response.');
-    } catch (err) {
-      console.error('Payment error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
+      // Redirect directly to Stripe Buy Link with success/cancel URLs
+      const buyLink = 'https://buy.stripe.com/test_7sYaEX2yEbai9PjfaiaVa00';
+      const successUrl = encodeURIComponent(`${window.location.origin}?success=true&quiz_result_id=${cleanQuizResultId}`);
+      const cancelUrl = encodeURIComponent(`${window.location.origin}?canceled=true`);
       
-      // Check if it's a connection or API error
-      if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Network error') || errorMessage.includes('Failed to fetch')) {
-        setPaymentError('⚠️ Payment service temporarily unavailable. Please try again in a moment.');
-      } else {
-        setPaymentError(errorMessage);
-      }
+      // Stripe Buy Links support success_url and cancel_url parameters
+      window.location.href = `${buyLink}?success_url=${successUrl}&cancel_url=${cancelUrl}`;
+      
+    } catch (err) {
+      console.error('Payment redirect error:', err);
+      setPaymentError('Unable to redirect to payment. Please try again.');
       setIsPaymentLoading(false);
     }
   };
